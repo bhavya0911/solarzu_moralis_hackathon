@@ -5,14 +5,16 @@ The Solarzu Dapp enables users to connect with the platform and buy their chosen
 * Solarzu allows users to make a downpayment and place a bid for their NFT on Opensea testnet
 * Polygon chain helps users to buy NFTs using Matic which makes the transactions cheaper and faster
 
-##### [Live link](https://solarzu-luminos-hackathon.vercel.app/)  
+##### [Live link](https://solarzu-moralis-hackathon.vercel.app/)  
 
 ## How we built it
 We built Solarzu using Next and Tailwind CSS for frontend
 
 * Solidity for smart contracts and hardhat for testing and deploying the smart contracts to Mumbai testnet.([link](https://mumbai.polygonscan.com/address/0x14751F6bF4c4F7E5d2c94EaebBd2C94c7128F147#code))
 * The Dapp uses the Opensea API for interaction with opensea and ethers for interaction of smart contract with frontend
-* It uses web3.storage for storing data in IPFS .
+* It uses Moralis IPFS Api for storing data in IPFS .
+* It uses Moralis Auth Api for user metamask auth.
+* It uses Covalent Endpoint A for getting metadata of the NFT.
 
 
 The way it works on POLYGON is -> When the user enters amount to place a bid for the NFT in the form of ETH we fetch the price and converts it into matic using coingecko-api and the user can view that price in the form of USD.
@@ -24,7 +26,7 @@ The way it works on POLYGON is -> When the user enters amount to place a bid for
 
 ## Getting Started
 
-First, run the development server:
+First install node modules and run the development server:
 
 ```bash
 npm i && npm run dev
