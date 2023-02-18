@@ -1,46 +1,48 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.0;
 
-contract Solarzu{
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./IWETHGateway.sol";
 
-    struct user {
-        uint256 used;
-        uint256 instalment_amount;
-        uint8 instalments_left;
-        uint256 tokenId;
-        address tokenAddress;
+contract Solarzu is Ownable, ReentrancyGuard {
+
+    struct OpenseaTrades {
+        uint256 value;
+        bytes tradeData;
     }
 
-    mapping (address=>user) public users;
-    event BNPL(address indexed user,uint256 total_amount,uint256 instalment_amount,uint8 instalments,uint256 tokenId,address tokenAddress);
-    event INSTALMENT_PAID(address indexed user,uint256 instalment_amount,uint8 instalments_left,uint256 tokenId,address tokenAddress);
+    address public AaveWethGateway = 0x3bd3a20Ac9Ff1dda1D99C0dFCE6D65C4960B3627;
+    address public AavePool = 0x4bd5643ac6f66a5237E18bfA7d47cF22f1c9F210;
+    address public openseaAddress = 0x7Be8076f4EA4A4AD08075C2508e481d6C946D12b;
 
-    function divide_installments(uint256 total_amount,uint8 instalments,uint256 _instalment_amount,uint256 _tokenId,address _tokenAddress) public{
-        require(users[msg.sender].instalments_left == 0,"You already have instalments");
-        require(instalments > 0);
-        users[msg.sender] = user(total_amount,_instalment_amount,instalments,_tokenId,_tokenAddress);
-        emit BNPL(msg.sender,total_amount,_instalment_amount,instalments,_tokenId,_tokenAddress);
+    IWETHGateway internal TrustedWethGateway = IWETHGateway(AaveWethGateway);
+
+    function purchaseFromOpensea(
+        OpenseaTrades[] memory openseaTrades,
+        uint256 totalValue
+    ) external payable nonReentrant {
+        uint256 requireAmount = (totalValue * 120)/100;
+        require(msg.value >= requireAmount, "Required Amount Not Sent");
+
+        TrustedWethGateway.depositETH(address(AavePool), address(this), 0);
+        TrustedWethGateway.withdrawETH(address(AavePool), totalValue, address(this));
+
+        for(uint256 i; i < openseaTrades.length; i++) {
+            openseaAddress.call{value: openseaTrades[i].value}(openseaTrades[i].tradeData);
+        }
+        assembly {
+            if gt(selfbalance(), 0) {
+                let callStatus := call(
+                    gas(),
+                    caller(),
+                    selfbalance(),
+                    0,
+                    0,
+                    0,
+                    0
+                 )
+            }
+        }
     }
-
-    function used_amount() public view returns(uint256){
-         return users[msg.sender].used;
-    }
-
-    function instalments_amount() public view returns(uint256){
-         return users[msg.sender].instalment_amount;
-    }
-
-    function instalments_left() public view returns(uint256){
-         return users[msg.sender].instalments_left;
-    }
-
-    function repayment() public payable{
-        require(users[msg.sender].instalments_left > 0,"No instalments");
-        require(msg.value >= users[msg.sender].instalment_amount,"amount not matched");
-        emit INSTALMENT_PAID(msg.sender,users[msg.sender].instalment_amount,users[msg.sender].instalments_left,users[msg.sender].tokenId,users[msg.sender].tokenAddress);
-        users[msg.sender].instalments_left-=1;
-    }
-
-    receive() external payable {}
-    fallback() external payable {}
 }
